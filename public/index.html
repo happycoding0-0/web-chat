@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebChat</title>
+  <!-- Inter 폰트 (Apple/OpenAI 스타일) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- GSAP 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+  <!-- 시작 페이지 -->
+  <div id="start-page" class="page">
+    <div class="container">
+      <!-- 세련된 텍스트 (큰 제목과 서브타이틀) -->
+      <h1 class="title">
+        Welcome to WebChat<br>
+        <span class="subtitle">환영합니다</span>
+      </h1>
+      <!-- 열리는 기능: 파란색 버튼 (primary-btn) -->
+      <button id="start-button" class="btn primary-btn">Get Started</button>
+    </div>
+  </div>
+
+  <!-- 사용자 이름 입력 모달 -->
+  <div id="username-popup" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">Enter Your Name</h2>
+      <input type="text" id="username-input" class="input-field" placeholder="Your Name">
+      <div class="modal-buttons">
+        <!-- 열리는 기능: Submit → 파란색 -->
+        <button id="username-submit" class="btn primary-btn">Submit</button>
+        <!-- 닫는 기능: Cancel → 빨간색 -->
+        <button id="username-cancle" class="btn danger-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 룸 리스트 페이지 -->
+  <div id="room-list-page" class="page hidden">
+    <div class="header">
+      <h2>Room List</h2>
+      <div class="header-buttons">
+        <!-- 열리는 기능: Create Room, Back to Start (파란색) -->
+        <button id="create-room-button" class="btn primary-btn">Create Room</button>
+        <button id="back-to-start-button" class="btn primary-btn">Back to Start</button>
+      </div>
+    </div>
+    <div class="table-container">
+      <table id="room-table">
+        <thead>
+          <tr>
+            <th>Room Name</th>
+            <th>Category</th>
+            <th>Creator</th>
+            <th>Participants</th>
+            <th>Private</th>
+            <th>Created</th>
+            <th>Join</th>
+          </tr>
+        </thead>
+        <tbody id="room-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 방 생성 모달 -->
+  <div id="create-room-popup" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">Create a New Room</h2>
+      <label class="label">Room Name: <input type="text" id="room-name-input" class="input-field"></label>
+      <label class="label">Visibility:
+        <select id="room-privacy-select" class="input-field">
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      </label>
+      <div id="room-password-div" class="hidden">
+        <label class="label">Password: <input type="password" id="room-password-input" class="input-field"></label>
+      </div>
+      <div class="modal-buttons">
+        <!-- 열리는 기능: Create (파란색) -->
+        <button id="create-room-submit" class="btn primary-btn">Create</button>
+        <!-- 닫는 기능: Cancel (빨간색) -->
+        <button class="modal-close btn danger-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 방 입장 시 비밀번호 입력 모달 (비공개 방용) -->
+  <div id="join-room-popup" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">Enter Room Password</h2>
+      <input type="password" id="join-room-password-input" class="input-field" placeholder="Room Password">
+      <div class="modal-buttons">
+        <!-- 열리는 기능: Submit (파란색) -->
+        <button id="join-room-password-submit" class="btn primary-btn">Submit</button>
+        <!-- 닫는 기능: Cancel (빨간색) -->
+        <button class="modal-close btn danger-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 방 페이지 -->
+  <div id="room-page" class="page hidden">
+    <div class="room-header">
+      <!-- 닫는 기능: Leave Room (빨간색) -->
+      <button id="leave-room-button" class="btn danger-btn">Leave Room</button>
+      <div id="room-status"></div>
+      <!-- 열리는 기능: Participants (파란색) -->
+      <button id="toggle-sidebar-button" class="btn primary-btn">Participants</button>
+    </div>
+    <div id="room-content"></div>
+  </div>
+
+  <!-- 참가자 사이드바 -->
+  <div id="participant-sidebar" class="participant-sidebar hidden">
+    <!-- 닫는 기능: Close (빨간색) -->
+    <button id="close-sidebar-button" class="btn danger-btn sidebar-close-btn">Close</button>
+    <div id="participant-list-content"></div>
+  </div>
+
+  <!-- GSAP 초기 애니메이션 스크립트 -->
+  <script>
+    // .title 요소에서 순수 텍스트를 가져옵니다.
+    const titleElem = document.querySelector('.title');
+    // textContent를 사용하면 HTML 태그 없이 순수 텍스트만 가져오므로 줄바꿈 문자도 포함됩니다.
+    const text = titleElem.textContent.trim();
+    // 기존 내용을 초기화합니다.
+    titleElem.innerHTML = '';
+  
+    // 줄바꿈(\n)을 기준으로 분리하여 각 줄을 처리합니다.
+    const lines = text.split('\n');
+    lines.forEach((line, lineIndex) => {
+      // 각 줄의 앞뒤 공백을 제거합니다.
+      const trimmedLine = line.trim();
+      // 각 문자를 <span>으로 감싸서 추가합니다.
+      trimmedLine.split('').forEach(char => {
+        const span = document.createElement('span');
+        span.textContent = char;
+        titleElem.appendChild(span);
+      });
+      // 마지막 줄이 아니라면 줄바꿈(<br>)을 추가합니다.
+      if (lineIndex < lines.length - 1) {
+        titleElem.appendChild(document.createElement('br'));
+      }
+    });
+  
+    // GSAP를 사용하여 각 <span> 요소에 stagger 애니메이션을 적용합니다.
+    gsap.from(".title span", { 
+      opacity: 0, 
+      y: 30, 
+      duration: 0.8, 
+      ease: "power4.out", 
+      stagger: 0.05 
+    });
+  </script>
+
+  <!-- Socket.io 및 메인 스크립트 -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
